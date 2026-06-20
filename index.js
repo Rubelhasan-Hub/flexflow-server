@@ -35,13 +35,30 @@ async function run() {
 
 
 
-
-
-
-        app.post('/api/add-class', async (req, res) => {
+        app.post('/api/all-classes', async (req, res) => {
             const newClass = req.body;
             const result = await classesCollection.insertOne(newClass);
             res.send(result);
+        });
+
+
+        app.get('/api/all-classes', async (req, res) => {
+            const query = {};
+
+            if (req.query.status) {
+                query.status = req.query.status;
+            }
+            if (req.query.search) {
+                query.className = { $regex: req.query.search, $options: 'i' };
+            }
+            if (req.query.category) {
+                const categoryArray = req.query.category.split(',');
+                query.category = { $in: categoryArray };
+            }
+
+            const cursor = classesCollection.find(query);
+            const allClasses = await cursor.toArray();
+            res.send(allClasses);
         });
 
 
