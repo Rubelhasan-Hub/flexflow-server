@@ -7,7 +7,7 @@ require('dotenv').config()
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.get('/', (req, res) => {
     res.send('Hello World!')
@@ -59,6 +59,34 @@ async function run() {
             const cursor = classesCollection.find(query);
             const allClasses = await cursor.toArray();
             res.send(allClasses);
+        });
+
+
+        // Add this to your server file
+        app.get('/api/all-classes', async (req, res) => {
+            try {
+                // .find() gets all, .limit(3) restricts to first 3
+                const result = await classesCollection.find().limit(3).toArray();
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Failed to fetch classes" });
+            }
+        });
+
+        app.get('/api/all-classes/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const query = { _id: new ObjectId(id) };
+                const result = await classesCollection.findOne(query);
+
+                if (!result) {
+                    return res.status(404).send({ message: "Class not found" });
+                }
+
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Error fetching class details" });
+            }
         });
 
 
