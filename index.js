@@ -1,7 +1,12 @@
 const express = require('express');
+const cors = require('cors');
 const app = express()
 const port = 5000
 require('dotenv').config()
+
+app.use(cors());
+app.use(express.json());
+
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
 app.get('/', (req, res) => {
@@ -24,6 +29,28 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
+
+        const database = client.db("flexflow_db");
+        const classesCollection = database.collection("all_classes");
+
+
+
+
+
+
+        app.post('/api/add-class', async (req, res) => {
+            const newClass = req.body;
+            const result = await classesCollection.insertOne(newClass);
+            res.send(result);
+        });
+
+
+
+
+
+
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
