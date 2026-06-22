@@ -32,9 +32,14 @@ async function run() {
 
         const database = client.db("flexflow_db");
         const classesCollection = database.collection("all_classes");
+        const bookingsCollection = database.collection("bookings");
+        const favoritesCollection = database.collection("favorites");
+        const trainerApplicationCollection = database.collection("trainer_apply");
 
 
 
+
+        // API For trainer----------------------
         app.post('/api/all-classes', async (req, res) => {
             const newClass = req.body;
             const result = await classesCollection.insertOne(newClass);
@@ -88,6 +93,163 @@ async function run() {
                 res.status(500).send({ message: "Error fetching class details" });
             }
         });
+
+        // Get classes by trainer email
+        app.get('/api/my-classes/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const query = { trainerEmail: email }; // আপনার ডাটাবেস ফিল্ডের নাম 'trainerEmail' ই তো?
+                const result = await classesCollection.find(query).toArray();
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Server error" });
+            }
+        });
+
+
+        // Update class details
+        app.patch('/api/classes/:id', async (req, res) => {
+            const id = req.params.id;
+            const updatedData = req.body;
+
+            const result = await classesCollection.updateOne(
+                { _id: new ObjectId(id) },
+                {
+                    $set: updatedData
+                }
+            );
+
+            res.send(result);
+        });
+
+        // Delete a class
+        app.delete('/api/classes/:id', async (req, res) => {
+            const id = req.params.id;
+
+            const result = await classesCollection.deleteOne({
+                _id: new ObjectId(id)
+            });
+
+            res.send(result);
+        });
+
+
+        app.get('/api/class-students/:id', async (req, res) => {
+            const classId = req.params.id;
+
+            const result = await bookingsCollection
+                .find({ classId })
+                .toArray();
+
+            res.send(result);
+        });
+
+        app.post('/api/bookings', async (req, res) => {
+            try {
+                const bookingData = req.body;
+                const result = await bookingsCollection.insertOne(bookingData);
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Failed to save booking" });
+            }
+        });
+
+
+
+
+
+
+
+
+        // API For Users----------------------
+
+        // get the booking data my user email
+        app.get('/api/my-bookings/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const query = { userEmail: email };
+                const result = await bookingsCollection.find(query).toArray();
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Error fetching your bookings" });
+            }
+        });
+
+
+
+        // Add to favorite route
+        app.post('/api/favorites', async (req, res) => {
+            try {
+                const { classId, userEmail, classDetails } = req.body;
+                const isExists = await favoritesCollection.findOne({
+                    classId: classId,
+                    userEmail: userEmail
+                });
+
+                if (isExists) {
+                    return res.status(400).send({ message: "Already in favorites" });
+                }
+
+                const result = await favoritesCollection.insertOne({
+                    classId,
+                    userEmail,
+                    classDetails
+                });
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Internal Server Error" });
+            }
+        });
+
+        // Get favorites for specific user
+        app.get('/api/favorites/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await favoritesCollection.find({ userEmail: email }).toArray();
+            res.send(result);
+        });
+
+        // Remove from favorites
+        app.delete('/api/favorites/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await favoritesCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        });
+
+        // Apply for trainer 
+        app.post('/api/trainer_apply', async (req, res) => {
+            try {
+                const applicationData = req.body;
+                const alreadyApplied = await trainerApplicationCollection.findOne({ userEmail: applicationData.userEmail });
+
+                if (alreadyApplied) {
+                    return res.status(400).send({ message: "You have already applied!" });
+                }
+
+                const result = await trainerApplicationCollection.insertOne({
+                    ...applicationData,
+                    status: 'pending',
+                    createdAt: new Date()
+                });
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Failed to submit application" });
+            }
+        });
+
+
+        // Get application 
+
+
+
+
+
+
+
+
+
+
+
+        // API For Admin----------------------
 
 
 
