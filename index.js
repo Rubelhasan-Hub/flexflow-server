@@ -35,6 +35,8 @@ async function run() {
         const bookingsCollection = database.collection("bookings");
         const favoritesCollection = database.collection("favorites");
         const trainerApplicationCollection = database.collection("trainer_apply");
+        const forumPostsCollection = database.collection("forum_posts");
+        const commentsCollection = database.collection("comments");
 
 
 
@@ -236,10 +238,7 @@ async function run() {
             }
         });
 
-
         // Get application 
-
-
         app.get('/api/trainer_apply/:email', async (req, res) => {
             try {
                 const email = req.params.email;
@@ -262,6 +261,17 @@ async function run() {
             }
         });
 
+        // Check Are user already booked...?
+        app.get('/api/check-booking', async (req, res) => {
+            try {
+                const { classId, userEmail } = req.query;
+                const booking = await bookingsCollection.findOne({ classId, userEmail });
+                res.send({ isBooked: !!booking }); // true অথবা false পাঠাবে
+            } catch (error) {
+                res.status(500).send({ message: "Error checking booking" });
+            }
+        });
+
 
 
 
@@ -271,6 +281,90 @@ async function run() {
 
         // API For Admin----------------------
 
+
+        app.post('/api/forum-posts', async (req, res) => {
+            const post = req.body;
+            const result = await forumPostsCollection.insertOne({
+                ...post,
+                likes: [],
+                dislikes: [],
+                createdAt: new Date()
+            });
+            res.send(result);
+        });
+
+        app.get('/api/forum-posts', async (req, res) => {
+            const result = await forumPostsCollection.find().sort({ createdAt: -1 }).toArray();
+            res.send(result);
+        });
+
+        app.get('/api/forum-posts/:id', async (req, res) => {
+            const query = { _id: new ObjectId(req.params.id) };
+            const result = await forumPostsCollection.findOne(query);
+            res.send(result);
+        });
+
+        app.patch('/api/forum-posts/:id/vote', async (req, res) => {
+            const { id } = req.params;
+            const { email, voteType } = req.body;
+            await forumPostsCollection.updateOne({ _id: new ObjectId(id) }, {
+                $pull: { likes: email, dislikes: email }
+            });
+
+            const update = voteType === 'like'
+                ? { $addToSet: { likes: email } }
+                : { $addToSet: { dislikes: email } };
+
+            const result = await forumPostsCollection.updateOne({ _id: new ObjectId(id) }, update);
+            res.send(result);
+        });
+
+
+        // Get all comments
+        app.get('/api/comments/:postId', async (req, res) => {
+            const comments = await commentsCollection.find({ postId: req.params.postId }).sort({ createdAt: -1 }).toArray();
+            res.send(comments);
+        });
+
+        // Post new comment
+        app.post('/api/comments', async (req, res) => {
+            const comment = { ...req.body, createdAt: new Date() };
+            const result = await commentsCollection.insertOne(comment);
+            res.send(result);
+        });
+
+        // Delete comment
+        app.delete('/api/comments/:id', async (req, res) => {
+            const result = await commentsCollection.deleteOne({ _id: new ObjectId(req.params.id) });
+            res.send(result);
+        });
+
+
+        app.patch('/api/forum-posts/:id/vote', async (req, res) => {
+            const { id } = req.params;
+            const { email, voteType } = req.body; // voteType: 'like' বা 'dislike'
+
+            const post = await forumPostsCollection.findOne({ _id: new ObjectId(id) });
+
+            let updateQuery = {};
+
+            if (voteType === 'like') {
+                if (post.likes.includes(email)) {
+                    updateQuery = { $pull: { likes: email } };
+                } else {
+                    updateQuery = { $addToSet: { likes: email }, $pull: { dislikes: email } };
+                }
+            } else if (voteType === 'dislike') {
+                if (post.dislikes.includes(email)) {
+                    updateQuery = { $pull: { dislikes: email } };
+                } else {
+                    updateQuery = { $addToSet: { dislikes: email }, $pull: { likes: email } };
+                }
+            }
+
+            const result = await forumPostsCollection.updateOne({ _id: new ObjectId(id) }, updateQuery);
+            res.send(result);
+        });
 
 
 
