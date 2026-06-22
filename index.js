@@ -157,6 +157,11 @@ async function run() {
         });
 
 
+        app.delete('/api/forum-posts/:id', async (req, res) => {
+            const result = await forumPostsCollection.deleteOne({ _id: new ObjectId(req.params.id) });
+            res.send(result);
+        });
+
 
 
 
