@@ -240,7 +240,27 @@ async function run() {
         // Get application 
 
 
+        app.get('/api/trainer_apply/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const application = await trainerApplicationCollection.findOne({ userEmail: email });
+                res.send(application);
+            } catch (error) {
+                res.status(500).send({ message: "Error fetching status" });
+            }
+        });
 
+        app.get('/api/user-stats/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const bookedCount = await bookingsCollection.countDocuments({ userEmail: email });
+                const favoriteCount = await favoritesCollection.countDocuments({ userEmail: email });
+
+                res.send({ bookedCount, favoriteCount });
+            } catch (error) {
+                res.status(500).send({ message: "Error fetching stats" });
+            }
+        });
 
 
 
