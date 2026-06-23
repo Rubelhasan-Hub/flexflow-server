@@ -435,7 +435,7 @@ async function run() {
 
         app.patch('/api/classes/:id', async (req, res) => {
             const id = req.params.id;
-            const { status } = req.body; 
+            const { status } = req.body;
 
             const result = await classesCollection.updateOne(
                 { _id: new ObjectId(id) },
@@ -444,8 +444,23 @@ async function run() {
             res.send(result);
         });
 
+        app.patch('/api/user/:id/demote', async (req, res) => {
+            const id = req.params.id;
+            const result = await client.db("flexflow_db").collection("user").updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { role: 'user' } }
+            );
+            res.send(result);
+        });
 
-        
+
+        app.get('/api/payments', async (req, res) => {
+            const result = await client.db("flexflow_db").collection("bookings").find().toArray();
+            res.send(result);
+        });
+
+
+
 
 
 
