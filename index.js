@@ -112,12 +112,12 @@ async function run() {
         // Update class details
         app.patch('/api/classes/:id', async (req, res) => {
             const id = req.params.id;
-            const updatedData = req.body;
+            const { _id, ...updatedData } = req.body;
 
             const result = await classesCollection.updateOne(
                 { _id: new ObjectId(id) },
                 {
-                    $set: updatedData
+                    $set: updatedData 
                 }
             );
 
@@ -370,6 +370,9 @@ async function run() {
             const result = await forumPostsCollection.updateOne({ _id: new ObjectId(id) }, updateQuery);
             res.send(result);
         });
+
+
+        
 
 
 
