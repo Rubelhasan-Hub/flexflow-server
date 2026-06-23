@@ -117,7 +117,7 @@ async function run() {
             const result = await classesCollection.updateOne(
                 { _id: new ObjectId(id) },
                 {
-                    $set: updatedData 
+                    $set: updatedData
                 }
             );
 
@@ -372,7 +372,29 @@ async function run() {
         });
 
 
-        
+        app.get('/api/user', async (req, res) => {
+            const user = await client.db("flexflow_db").collection("user").find().toArray();
+            res.send(user);
+        });
+
+        app.patch('/api/user/:id/status', async (req, res) => {
+            const id = req.params.id;
+            const { status } = req.body; // 'blocked' or 'active'
+            const result = await client.db("flexflow_db").collection("user").updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { status: status } }
+            );
+            res.send(result);
+        });
+
+        app.patch('/api/user/:id/role', async (req, res) => {
+            const id = req.params.id;
+            const result = await client.db("flexflow_db").collection("user").updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { role: 'admin' } }
+            );
+            res.send(result);
+        });
 
 
 
