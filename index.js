@@ -248,6 +248,11 @@ async function run() {
             try {
                 const email = req.params.email;
                 const application = await trainerApplicationCollection.findOne({ userEmail: email });
+
+                if (!application) {
+                    return res.status(200).send({ status: 'none', message: "No application found" });
+                }
+
                 res.send(application);
             } catch (error) {
                 res.status(500).send({ message: "Error fetching status" });
@@ -395,6 +400,52 @@ async function run() {
             );
             res.send(result);
         });
+
+
+
+        //  get trainer application 
+
+        app.get('/api/trainer-applications', async (req, res) => {
+            try {
+                const applications = await trainerApplicationCollection.find().toArray();
+                res.send(applications);
+            } catch (error) {
+                res.status(500).send({ message: "Failed to fetch applications" });
+            }
+        });
+
+        app.patch('/api/trainer-applications/:id', async (req, res) => {
+            const { id } = req.params;
+            const { status, feedback } = req.body;
+            await client.db("flexflow_db").collection("trainer_apply").updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { status, feedback } }
+            );
+
+            if (status === 'approved') {
+                const app = await client.db("flexflow_db").collection("trainer_apply").findOne({ _id: new ObjectId(id) });
+                await client.db("flexflow_db").collection("user").updateOne(
+                    { email: app.userEmail },
+                    { $set: { role: 'trainer' } }
+                );
+            }
+            res.send({ success: true });
+        });
+
+
+        app.patch('/api/classes/:id', async (req, res) => {
+            const id = req.params.id;
+            const { status } = req.body; 
+
+            const result = await classesCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { status: status } }
+            );
+            res.send(result);
+        });
+
+
+        
 
 
 
