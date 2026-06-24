@@ -13,6 +13,16 @@ app.get('/', (req, res) => {
     res.send('Hello World!')
 })
 
+const verifyToken = (req, res, next) => {
+    console.log('Logger Logged:', req.headers);
+
+    const authHeader = req.headers?.authorization
+    if (!authHeader) {
+        return res.status(401).send({ message: "unauthorized Access" })
+    }
+    next();
+}
+
 
 const uri = process.env.MONGODB_URI;
 
@@ -37,6 +47,7 @@ async function run() {
         const trainerApplicationCollection = database.collection("trainer_apply");
         const forumPostsCollection = database.collection("forum_posts");
         const commentsCollection = database.collection("comments");
+        const usersCollection = database.collection("user");
 
 
 
@@ -68,8 +79,6 @@ async function run() {
             res.send(allClasses);
         });
 
-
-        // Add this to your server file
         app.get('/api/all-classes', async (req, res) => {
             try {
                 // .find() gets all, .limit(3) restricts to first 3
@@ -80,7 +89,7 @@ async function run() {
             }
         });
 
-        app.get('/api/all-classes/:id', async (req, res) => {
+        app.get('/api/all-classes/:id', verifyToken, async (req, res) => {
             try {
                 const id = req.params.id;
                 const query = { _id: new ObjectId(id) };
@@ -291,7 +300,6 @@ async function run() {
 
         // API For Admin----------------------
 
-
         app.post('/api/forum-posts', async (req, res) => {
             const post = req.body;
             const result = await forumPostsCollection.insertOne({
@@ -461,6 +469,25 @@ async function run() {
 
 
 
+        app.delete('/api/forum-posts/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await forumPostsCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        });
+
+
+
+        app.get('/api/admin-stats', async (req, res) => {
+            try {
+                const users = await client.db("flexflow_db").collection("user").countDocuments();
+                const classes = await client.db("flexflow_db").collection("all_classes").countDocuments();
+                const bookings = await client.db("flexflow_db").collection("bookings").countDocuments();
+
+                res.send({ users, classes, bookings });
+            } catch (error) {
+                res.status(500).send({ message: "Error fetching stats" });
+            }
+        });
 
 
 
@@ -478,15 +505,10 @@ async function run() {
         // await client.close();
     }
 }
+
+
+
 run().catch(console.dir);
-
-
-
-
-
-
-
-
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
 })
